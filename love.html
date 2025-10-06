@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Love</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.150.1/build/three.module.js"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        camera.position.z = 25;
+
+        const particleCount = 40000;
+        const positions = [];
+        const heartShapeScale = 1.0; // Ukuran heart lebih kecil seperti sebelumnya
+
+        for (let i = 0; i < particleCount; i++) {
+            const t = Math.random() * 2 * Math.PI;
+            const x = heartShapeScale * 16 * Math.pow(Math.sin(t), 3);
+            const y = heartShapeScale * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+            const spread = 2.5;
+            const z = (Math.random() - 0.5) * spread;
+            positions.push(x, y, z);
+        }
+
+        const particleGeometry = new THREE.BufferGeometry();
+        particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xff4d6d,
+            size: 0.1,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity: 0.9
+        });
+
+        const heartParticles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(heartParticles);
+
+        // Variabel untuk mengikuti cursor (normalized -1 to 1)
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // Rotasi saat ini (untuk smooth transition)
+        let currentRotationX = 0;
+        let currentRotationY = 0;
+
+        // Target rotasi berdasarkan mouse (max 45 derajat atau π/4 radian)
+        const maxRotation = Math.PI / 4;
+        const lerpSpeed = 0.05; // Kecepatan lerp untuk animasi smooth (semakin kecil, semakin lambat/smooth)
+
+        // Event listener untuk mouse move
+        window.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            const elapsedTime = clock.getElapsedTime();
+            
+            // Hitung target rotasi berdasarkan posisi mouse
+            const targetRotationY = mouseX * maxRotation; // Kiri-kanan (rotasi Y)
+            const targetRotationX = mouseY * maxRotation; // Depan-belakang (rotasi X, dibalik agar natural)
+            
+            // Lerp untuk smooth animation
+            currentRotationY += (targetRotationY - currentRotationY) * lerpSpeed;
+            currentRotationX += (targetRotationX - currentRotationX) * lerpSpeed;
+            
+            // Terapkan rotasi ke heart (tetap di tengah, posisi 0)
+            heartParticles.rotation.x = currentRotationX;
+            heartParticles.rotation.y = currentRotationY;
+            
+            // Opsional: Tambahkan sedikit rotasi otomatis untuk efek dinamis (bisa dihapus jika tidak diinginkan)
+            // heartParticles.rotation.z = elapsedTime * 0.1;
+            
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
